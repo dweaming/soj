@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sword of Justice Pre‑Regs</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -12,32 +12,79 @@
     [data-theme="light"] {
       --bg: #f4f4f4; --fg: #111; --accent: #2563eb; --panel: #fff; --muted: #888;
     }
-    * { box-sizing:border-box; margin:0; padding:0 }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family:'Inter',sans-serif;
-      background:var(--bg); color:var(--fg);
-      display:flex; align-items:center; justify-content:center;
-      min-height:100vh; padding:1rem;
-      transition: .3s;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+      transition: background .3s, color .3s;
     }
     .container {
-      background:var(--panel); padding:2rem; border-radius:1rem;
-      box-shadow:0 10px 25px rgba(0,0,0,.2); max-width:420px; width:100%;
-      position:relative; text-align:center;
+      background: var(--panel);
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      max-width: 420px;
+      width: 100%;
+      position: relative;
+      text-align: center;
     }
     .toggle {
-      position:absolute; top:.5rem; right:.5rem;
-      background:none; border:none; color:var(--muted);
-      font-size:1.2rem; cursor:pointer;
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.2rem;
+      cursor: pointer;
     }
-    h1 { font-size:1.4rem; font-weight:600; margin-bottom:1rem }
-    #count { font-size:3rem; font-weight:600; color:var(--accent); margin-bottom:.5rem; transition:.2s }
-    #count.bump { transform:scale(1.1) }
-    #date, #countdown { font-size:.9rem; color:var(--muted); margin-bottom:.5rem }
-    .stats { text-align:left; margin-top:1rem; font-size:.95rem; color:var(--fg) }
-    .stats div { margin:.3rem 0 }
-    .milestone { margin-top:1rem; font-size:.95rem; color:var(--accent); font-weight:500 }
-    #sparkline { display:block; width:100%; height:50px; margin-top:1rem; }
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    #count {
+      font-size: 3rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      transition: transform .2s;
+    }
+    #count.bump {
+      transform: scale(1.1);
+    }
+    #date, #countdown {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .stats {
+      text-align: left;
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      color: var(--fg);
+    }
+    .stats div {
+      margin: 0.3rem 0;
+    }
+    .milestone {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    #sparkline {
+      display: block;
+      width: 100%;
+      height: 50px;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body data-theme="dark">
@@ -47,19 +94,16 @@
     <div id="count">–</div>
     <div id="date">Loading…</div>
     <div id="countdown">Countdown…</div>
-
     <canvas id="sparkline" width="300" height="50"></canvas>
-
     <div class="stats">
       <div>Since open: <span id="since">–</span></div>
       <div>Rate: <span id="rate">–</span>/min</div>
     </div>
-
     <div class="milestone" id="milestone"></div>
   </div>
 
   <script>
-    // elems & state
+    // Elements & state
     const countEl   = document.getElementById('count');
     const dateEl    = document.getElementById('date');
     const cdEl      = document.getElementById('countdown');
@@ -70,91 +114,98 @@
     const canvas    = document.getElementById('sparkline');
     const ctx       = canvas.getContext('2d');
     const launch    = new Date('2025-09-08T00:00:00');
-    let initial     = null, lastTotal = 0, startTime, hitMilestone=false;
+    let initial     = null, lastTotal = 0, startTime, hitMilestone = false;
     let history     = [];
 
-    // theme toggle
+    // Theme toggle
     tog.onclick = () => {
       const theme = document.body.getAttribute('data-theme');
-      document.body.setAttribute('data-theme', theme==='dark'?'light':'dark');
-      tog.textContent = theme==='dark'?'☀️':'🌙';
+      document.body.setAttribute('data-theme', theme === 'dark' ? 'light' : 'dark');
+      tog.textContent = theme === 'dark' ? '☀️' : '🌙';
     };
 
-    // clock & countdown
+    // Clock & countdown
     function tick() {
       const now = new Date();
       dateEl.textContent = now.toLocaleString();
-      // countdown
       let diff = launch - now;
       if (diff < 0) diff = 0;
-      const d = Math.floor(diff/864e5);
-      const h = Math.floor(diff%864e5/36e5);
-      const m = Math.floor(diff%36e5/6e4);
-      const s = Math.floor(diff%6e4/1e3);
+      const d = Math.floor(diff / 864e5);
+      const h = Math.floor((diff % 864e5) / 36e5);
+      const m = Math.floor((diff % 36e5) / 6e4);
+      const s = Math.floor((diff % 6e4) / 1e3);
       cdEl.textContent = `Rumored Launch in ${d}d ${h}h ${m}m ${s}s`;
     }
-    setInterval(tick,1000); tick();
+    setInterval(tick, 1000);
+    tick();
 
-    // draw sparkline
+    // Draw sparkline
     function draw() {
-      const w=canvas.width, h=canvas.height;
-      ctx.clearRect(0,0,w,h);
-      if (history.length<2) return;
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      if (history.length < 2) return;
       const min = Math.min(...history), max = Math.max(...history);
       ctx.beginPath();
-      history.forEach((v,i)=>{
-        const x = i/(history.length-1)*w;
-        const y = h - ((v-min)/(max-min||1))*h;
-        i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+      history.forEach((v, i) => {
+        const x = (i / (history.length - 1)) * w;
+        const y = h - ((v - min) / (max - min || 1)) * h;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
       });
-      ctx.strokeStyle = 'var(--accent)'; ctx.lineWidth=2; ctx.stroke();
+      ctx.strokeStyle = 'var(--accent)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
     }
 
-    // fetch loop
-    async function fetchCount(){
+    // Fetch count
+    async function fetchCount() {
       try {
         const res  = await fetch(
           "https://corsproxy.io/?https://api-sea.swordofjustice.com/api/yuyue/total"
         );
         const json = await res.json();
-        if(json.code!==0) return;
+        if (json.code !== 0) return;
         const raw = Number(json.data.total);
-        // init
-        if(initial===null){
+
+        // Initial load
+        if (initial === null) {
           initial   = raw;
+          lastTotal = raw;
           startTime = Date.now();
           countEl.textContent = raw.toLocaleString();
           sinceEl.textContent = '0';
           rateEl.textContent  = '0.0';
+          history.push(raw);
+          draw();
         }
-        // update on change
-        if(raw!==lastTotal){
-          // bump
+        // On change
+        else if (raw !== lastTotal) {
           countEl.classList.add('bump');
-          setTimeout(()=>countEl.classList.remove('bump'),200);
+          setTimeout(() => countEl.classList.remove('bump'), 200);
           countEl.textContent = raw.toLocaleString();
-          // milestone
-          if(!hitMilestone && raw>=1e6){
-            hitMilestone=true;
+
+          if (!hitMilestone && raw >= 1e6) {
+            hitMilestone = true;
             mileEl.textContent = `🎉 Hit 1 000 000 at ${new Date().toLocaleString()}`;
           }
-          // stats
+
           const delta = raw - initial;
           sinceEl.textContent = delta.toLocaleString();
-          const mins = (Date.now()-startTime)/6e4;
-          rateEl.textContent  = (delta/(mins||1)).toFixed(1);
-          // sparkline
+          const mins = (Date.now() - startTime) / 6e4;
+          rateEl.textContent  = (delta / (mins || 1)).toFixed(1);
+
           history.push(raw);
-          if(history.length>30) history.shift();
+          if (history.length > 30) history.shift();
           draw();
         }
         lastTotal = raw;
-      } catch(e){
-        console.error('fetch error',e);
+      } catch (e) {
+        console.error('fetch error', e);
       }
     }
+
+    // Run immediately, then every 10s
     fetchCount();
-    setInterval(fetchCount,10000);
+    setInterval(fetchCount, 10000);
   </script>
 </body>
 </html>

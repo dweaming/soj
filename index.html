@@ -93,7 +93,8 @@
 
     async function fetchCount() {
       try {
-        const res = await fetch("https://api-sea.swordofjustice.com/api/yuyue/total");
+        const res = await fetch("https://corsproxy.io/?https://api-sea.swordofjustice.com/api/yuyue/total"); // trying with proxy
+
         const json = await res.json();
 
         if (json.code === 0) {
@@ -102,7 +103,7 @@
             countEl.textContent = raw.toLocaleString("en-US");
             lastTotal = raw;
 
-            if (!hitMillion && raw >= 1_000_000) {
+            if (!hitMillion && raw >= 1_000_000) { // if we hit 1 million den we be cool and WOO
               hitMillion = true;
               milestoneEl.textContent = `🎉 HIT 1 MILLION at ${new Date().toLocaleString()}`;
             }
@@ -118,7 +119,7 @@
     setInterval(() => {
       updateTime();
       fetchCount();
-    }, 2000);
+    }, 1000); // updating every 1 second
   </script>
 </body>
 </html>

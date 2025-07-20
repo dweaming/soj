@@ -2,94 +2,56 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sword of Justice Pre‑Registrations</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sword of Justice Pre‑Regs</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #111;
-      --fg: #eee;
-      --accent: #00cc99;
-      --panel: #1f1f1f;
-      --text-muted: #666;
+      --bg: #111; --fg: #eee; --accent: #00cc99; --panel: #1f1f1f; --muted: #666;
     }
     [data-theme="light"] {
-      --bg: #f4f4f4;
-      --fg: #111;
-      --accent: #2563eb;
-      --panel: #ffffff;
-      --text-muted: #888;
+      --bg: #f4f4f4; --fg: #111; --accent: #2563eb; --panel: #fff; --muted: #888;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing:border-box; margin:0; padding:0 }
     body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--fg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 1rem;
-      transition: background .3s, color .3s;
+      font-family:'Inter',sans-serif;
+      background:var(--bg); color:var(--fg);
+      display:flex; align-items:center; justify-content:center;
+      min-height:100vh; padding:1rem;
+      transition: .3s;
     }
     .container {
-      background: var(--panel);
-      padding: 2rem;
-      border-radius: 1rem;
-      box-shadow: 0 10px 25px rgba(0,0,0,.2);
-      max-width: 400px;
-      width: 100%;
-      text-align: center;
-      position: relative;
-    }
-    h1 {
-      font-size: 1.4rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-    #count {
-      font-size: 3rem;
-      font-weight: 600;
-      color: var(--accent);
-      margin-bottom: .5rem;
-      transition: transform .2s;
-    }
-    #count.bump { transform: scale(1.1); }
-    #date { font-size: .9rem; color: var(--text-muted); }
-    .stats {
-      margin-top: 1.5rem;
-      text-align: left;
-      font-size: .95rem;
-      color: var(--fg);
-    }
-    .stats div { margin: .5rem 0; }
-    .milestone {
-      margin-top: 1rem;
-      font-size: .95rem;
-      color: var(--accent);
-      font-weight: 500;
+      background:var(--panel); padding:2rem; border-radius:1rem;
+      box-shadow:0 10px 25px rgba(0,0,0,.2); max-width:420px; width:100%;
+      position:relative; text-align:center;
     }
     .toggle {
-      position: absolute;
-      top: .5rem; right: .5rem;
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 1.2rem;
+      position:absolute; top:.5rem; right:.5rem;
+      background:none; border:none; color:var(--muted);
+      font-size:1.2rem; cursor:pointer;
     }
+    h1 { font-size:1.4rem; font-weight:600; margin-bottom:1rem }
+    #count { font-size:3rem; font-weight:600; color:var(--accent); margin-bottom:.5rem; transition:.2s }
+    #count.bump { transform:scale(1.1) }
+    #date, #countdown { font-size:.9rem; color:var(--muted); margin-bottom:.5rem }
+    .stats { text-align:left; margin-top:1rem; font-size:.95rem; color:var(--fg) }
+    .stats div { margin:.3rem 0 }
+    .milestone { margin-top:1rem; font-size:.95rem; color:var(--accent); font-weight:500 }
+    #sparkline { display:block; width:100%; height:50px; margin-top:1rem; }
   </style>
 </head>
 <body data-theme="dark">
   <div class="container">
     <button class="toggle" aria-label="Toggle theme">🌙</button>
-    <h1>Sword of Justice Pre‑Registrations</h1>
+    <h1>Pre‑Registrations</h1>
     <div id="count">–</div>
-    <div id="date">Loading time…</div>
+    <div id="date">Loading…</div>
+    <div id="countdown">Countdown…</div>
+
+    <canvas id="sparkline" width="300" height="50"></canvas>
 
     <div class="stats">
-      <div>Since page open: <span id="since">–</span></div>
+      <div>Since open: <span id="since">–</span></div>
       <div>Rate: <span id="rate">–</span>/min</div>
     </div>
 
@@ -97,74 +59,102 @@
   </div>
 
   <script>
-    // Elements
-    const countEl    = document.getElementById('count');
-    const dateEl     = document.getElementById('date');
-    const sinceEl    = document.getElementById('since');
-    const rateEl     = document.getElementById('rate');
-    const mileEl     = document.getElementById('milestone');
-    const toggleBtn  = document.querySelector('.toggle');
-    // State
-    let lastTotal   = 0;
-    let initial     = null;
-    let startTime   = Date.now();
-    let hitMillion  = false;
+    // elems & state
+    const countEl   = document.getElementById('count');
+    const dateEl    = document.getElementById('date');
+    const cdEl      = document.getElementById('countdown');
+    const sinceEl   = document.getElementById('since');
+    const rateEl    = document.getElementById('rate');
+    const mileEl    = document.getElementById('milestone');
+    const tog       = document.querySelector('.toggle');
+    const canvas    = document.getElementById('sparkline');
+    const ctx       = canvas.getContext('2d');
+    const launch    = new Date('2025-09-08T00:00:00');
+    let initial     = null, lastTotal = 0, startTime, hitMilestone=false;
+    let history     = [];
 
-    // Theme toggle
-    toggleBtn.addEventListener('click', ()=> {
-      const isDark = document.body.getAttribute('data-theme') === 'dark';
-      document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-      toggleBtn.textContent = isDark ? '☀️' : '🌙';
-    });
+    // theme toggle
+    tog.onclick = () => {
+      const theme = document.body.getAttribute('data-theme');
+      document.body.setAttribute('data-theme', theme==='dark'?'light':'dark');
+      tog.textContent = theme==='dark'?'☀️':'🌙';
+    };
 
-    // Update clock every second
-    async function fetchCount() {
-  try {
-    const res  = await fetch("https://corsproxy.io/?https://api-sea.swordofjustice.com/api/yuyue/total");
-    const json = await res.json();
-    if (json.code !== 0) return;
-
-    const raw       = Number(json.data.total);
-    const formatted = raw.toLocaleString("en-US");
-
-    // very first time
-    if (initial === null) {
-      initial   = raw;
-      startTime = Date.now();
-      countEl.textContent = formatted;      // show it immediately
-      sinceEl.textContent = '0';            // zero since open
-      rateEl.textContent  = '0.0';          // rate=0
+    // clock & countdown
+    function tick() {
+      const now = new Date();
+      dateEl.textContent = now.toLocaleString();
+      // countdown
+      let diff = launch - now;
+      if (diff < 0) diff = 0;
+      const d = Math.floor(diff/864e5);
+      const h = Math.floor(diff%864e5/36e5);
+      const m = Math.floor(diff%36e5/6e4);
+      const s = Math.floor(diff%6e4/1e3);
+      cdEl.textContent = `Rumored Launch in ${d}d ${h}h ${m}m ${s}s`;
     }
-    // on any *change* after that
-    else if (raw !== lastTotal) {
-      // bump animation
-      countEl.classList.add("bump");
-      setTimeout(()=> countEl.classList.remove("bump"), 200);
+    setInterval(tick,1000); tick();
 
-      countEl.textContent = formatted;      // update visual
-      // milestone
-      if (!hitMillion && raw >= 1_000_000) {
-        hitMillion = true;
-        mileEl.textContent = `🎉 Hit 1 000 000 at ${new Date().toLocaleString()}`;
+    // draw sparkline
+    function draw() {
+      const w=canvas.width, h=canvas.height;
+      ctx.clearRect(0,0,w,h);
+      if (history.length<2) return;
+      const min = Math.min(...history), max = Math.max(...history);
+      ctx.beginPath();
+      history.forEach((v,i)=>{
+        const x = i/(history.length-1)*w;
+        const y = h - ((v-min)/(max-min||1))*h;
+        i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+      });
+      ctx.strokeStyle = 'var(--accent)'; ctx.lineWidth=2; ctx.stroke();
+    }
+
+    // fetch loop
+    async function fetchCount(){
+      try {
+        const res  = await fetch(
+          "https://corsproxy.io/?https://api-sea.swordofjustice.com/api/yuyue/total"
+        );
+        const json = await res.json();
+        if(json.code!==0) return;
+        const raw = Number(json.data.total);
+        // init
+        if(initial===null){
+          initial   = raw;
+          startTime = Date.now();
+          countEl.textContent = raw.toLocaleString();
+          sinceEl.textContent = '0';
+          rateEl.textContent  = '0.0';
+        }
+        // update on change
+        if(raw!==lastTotal){
+          // bump
+          countEl.classList.add('bump');
+          setTimeout(()=>countEl.classList.remove('bump'),200);
+          countEl.textContent = raw.toLocaleString();
+          // milestone
+          if(!hitMilestone && raw>=1e6){
+            hitMilestone=true;
+            mileEl.textContent = `🎉 Hit 1 000 000 at ${new Date().toLocaleString()}`;
+          }
+          // stats
+          const delta = raw - initial;
+          sinceEl.textContent = delta.toLocaleString();
+          const mins = (Date.now()-startTime)/6e4;
+          rateEl.textContent  = (delta/(mins||1)).toFixed(1);
+          // sparkline
+          history.push(raw);
+          if(history.length>30) history.shift();
+          draw();
+        }
+        lastTotal = raw;
+      } catch(e){
+        console.error('fetch error',e);
       }
-      // stats
-      const delta = raw - initial;
-      sinceEl.textContent = delta.toLocaleString();
-      const mins = (Date.now() - startTime) / 60000;
-      rateEl.textContent  = (delta / (mins||1)).toFixed(1);
     }
-
-    lastTotal = raw; // always keep this in sync
-  }
-  catch (e) {
-    console.error("fetchCount error:", e);
-  }
-}
-
-    // Kick it off
-    updateTime();
     fetchCount();
-    setInterval(fetchCount, 10000);
+    setInterval(fetchCount,10000);
   </script>
 </body>
 </html>

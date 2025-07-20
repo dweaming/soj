@@ -118,52 +118,48 @@
     });
 
     // Update clock every second
-    function updateTime() {
-      dateEl.textContent = new Date().toLocaleString();
-    }
-    setInterval(updateTime, 1000);
-
-    // Fetch count every 10s
     async function fetchCount() {
-      try {
-        const res  = await fetch("https://corsproxy.io/?https://api-sea.swordofjustice.com/api/yuyue/total");
-        const json = await res.json();
-        if (json.code === 0) {
-          const raw = Number(json.data.total);
-          // Initialize
-          if (initial === null) {
-            initial   = raw;
-            lastTotal = raw;
-            startTime = Date.now();
-          }
-          // Only update on change
-          if (raw !== lastTotal) {
-            // bump animation
-            countEl.classList.add('bump');
-            setTimeout(()=> countEl.classList.remove('bump'), 200);
+  try {
+    const res  = await fetch("https://corsproxy.io/?https://api-sea.swordofjustice.com/api/yuyue/total");
+    const json = await res.json();
+    if (json.code !== 0) return;
 
-            countEl.textContent = raw.toLocaleString('en-US');
-            lastTotal = raw;
+    const raw       = Number(json.data.total);
+    const formatted = raw.toLocaleString("en-US");
 
-            // milestone
-            if (!hitMillion && raw >= 1_000_000) {
-              hitMillion = true;
-              mileEl.textContent = `🎉 Hit 1 000 000 at ${new Date().toLocaleString()}`;
-            }
-
-            // stats
-            const delta = raw - initial;
-            sinceEl.textContent = delta.toLocaleString();
-            const mins = (Date.now() - startTime) / 60000;
-            rateEl.textContent  = (delta / (mins||1)).toFixed(1);
-          }
-        } else {
-          console.warn('API error:', json.message);
-        }
-      } catch (e) {
-        console.error('Fetch error', e);
-      }
+    // very first time
+    if (initial === null) {
+      initial   = raw;
+      startTime = Date.now();
+      countEl.textContent = formatted;      // show it immediately
+      sinceEl.textContent = '0';            // zero since open
+      rateEl.textContent  = '0.0';          // rate=0
     }
+    // on any *change* after that
+    else if (raw !== lastTotal) {
+      // bump animation
+      countEl.classList.add("bump");
+      setTimeout(()=> countEl.classList.remove("bump"), 200);
+
+      countEl.textContent = formatted;      // update visual
+      // milestone
+      if (!hitMillion && raw >= 1_000_000) {
+        hitMillion = true;
+        mileEl.textContent = `🎉 Hit 1 000 000 at ${new Date().toLocaleString()}`;
+      }
+      // stats
+      const delta = raw - initial;
+      sinceEl.textContent = delta.toLocaleString();
+      const mins = (Date.now() - startTime) / 60000;
+      rateEl.textContent  = (delta / (mins||1)).toFixed(1);
+    }
+
+    lastTotal = raw; // always keep this in sync
+  }
+  catch (e) {
+    console.error("fetchCount error:", e);
+  }
+}
 
     // Kick it off
     updateTime();

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sword of Justice Pre-Registrations</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5em;
+    }
+    #count {
+      font-size: 4rem;
+      font-weight: bold;
+      color: #00ffcc;
+    }
+    #date, #milestone {
+      margin-top: 1em;
+      font-size: 1.2rem;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sword of Justice Pre-Registrations</h1>
+  <div id="count">Loading...</div>
+  <div id="date"></div>
+  <div id="milestone"></div>
+
+  <script>
+    const countEl = document.getElementById("count");
+    const dateEl = document.getElementById("date");
+    const milestoneEl = document.getElementById("milestone");
+    let lastTotal = 0;
+    let hitMillion = false;
+
+    function updateTime() {
+      const now = new Date();
+      dateEl.textContent = "Current time: " + now.toLocaleString();
+    }
+
+    async function fetchCount() {
+      try {
+        const res = await fetch("https://api-sea.swordofjustice.com/api/yuyue/total"); // dis da api guys woo
+        const json = await res.json();
+        if (json.code === 0) {
+          const raw = Number(json.data.total);
+          if (raw !== lastTotal) {
+            countEl.textContent = raw.toLocaleString("en-US");
+            lastTotal = raw;
+
+            if (!hitMillion && raw >= 1_000_000) { // check if hit da million woo
+              hitMillion = true;
+              const time = new Date().toLocaleString();
+              milestoneEl.textContent = `🎉 HIT 1 MILLION at ${time}`;
+            }
+          }
+        }
+      } catch (e) {
+        countEl.textContent = "Error loading count";
+      }
+    }
+
+    setInterval(() => {
+      updateTime();
+      fetchCount();
+    }, 2000); // check every 2 seconds seems ok here then hav it update only when it count goes uppies
+
+    // Initial load
+    updateTime();
+    fetchCount();
+  </script>
+</body>
+</html>

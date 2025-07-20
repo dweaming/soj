@@ -77,29 +77,29 @@
     <div class="milestone" id="milestone"></div>
   </div>
 
-  <!-- Chart.js & date adapter -->
+  <!-- Chart.js core -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2"></script>
+  <!-- Correct date‑fns adapter bundle for Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
   <script>
-    const countEl  = document.getElementById('count');
-    const dateEl   = document.getElementById('date');
-    const cdEl     = document.getElementById('countdown');
-    const mileEl   = document.getElementById('milestone');
-    const tog      = document.querySelector('.toggle');
+    const countEl   = document.getElementById('count');
+    const dateEl    = document.getElementById('date');
+    const cdEl      = document.getElementById('countdown');
+    const mileEl    = document.getElementById('milestone');
+    const tog       = document.querySelector('.toggle');
     const rangeBtns = document.querySelectorAll('.range-buttons button');
-    const ctx      = document.getElementById('chart').getContext('2d');
+    const ctx       = document.getElementById('chart').getContext('2d');
 
-    const launch   = new Date('2025-09-08T00:00:00');
-    let initial    = null, lastTotal = 0, startTime, hitMilestone=false;
-    // Load persisted history or empty
-    let history    = JSON.parse(localStorage.getItem('preRegHistory')||'[]')
-                       .map(o=>({t:new Date(o.t),v:o.v}))
-                       .filter(o=>Date.now()-o.t<=7*864e5);
+    const launch    = new Date('2025-09-08T00:00:00');
+    let initial     = null, lastTotal = 0, hitMilestone = false;
+    let history     = JSON.parse(localStorage.getItem('preRegHistory')||'[]')
+                        .map(o=>({t:new Date(o.t),v:o.v}))
+                        .filter(o=>Date.now()-o.t <= 7*864e5);
 
-    // Save history
-    function persist() {
-      localStorage.setItem('preRegHistory',
+    function persist(){
+      localStorage.setItem(
+        'preRegHistory',
         JSON.stringify(history.map(o=>({t:o.t.getTime(),v:o.v})))
       );
     }
@@ -115,14 +115,15 @@
     function tick(){
       const now = new Date();
       dateEl.textContent = now.toLocaleString();
-      let dms = launch - now; if(dms<0) dms=0;
-      const d=Math.floor(dms/864e5),
-            h=Math.floor((dms%864e5)/36e5),
-            m=Math.floor((dms%36e5)/6e4),
-            s=Math.floor((dms%6e4)/1e3);
+      let diff = launch - now; if(diff<0) diff=0;
+      const d = Math.floor(diff/864e5),
+            h = Math.floor((diff%864e5)/36e5),
+            m = Math.floor((diff%36e5)/6e4),
+            s = Math.floor((diff%6e4)/1e3);
       cdEl.textContent = `Launch in ${d}d ${h}h ${m}m ${s}s`;
     }
-    setInterval(tick,1000); tick();
+    setInterval(tick,1000);
+    tick();
 
     // Chart.js setup
     const chart = new Chart(ctx, {
@@ -144,17 +145,15 @@
       }
     });
 
-    // Update chart for a given range
-    let currentRange='live';
+    let currentRange = 'live';
     function updateChart(){
-      const now=Date.now();
-      let span = {live:5*60e3,'1h':60*60e3,'24h':24*60*60e3,'7d':7*24*60*60e3}[currentRange];
-      const filtered = history.filter(o=> now - o.t <= span );
-      chart.data.datasets[0].data = filtered;
+      const now = Date.now();
+      const span = {live:5*60e3,'1h':60*60e3,'24h':24*60*60e3,'7d':7*24*60*60e3}[currentRange];
+      chart.data.datasets[0].data = history.filter(o=> now - o.t <= span);
       chart.update('none');
     }
     rangeBtns.forEach(btn=>{
-      btn.onclick=()=>{
+      btn.onclick = ()=>{
         rangeBtns.forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
         currentRange = btn.dataset.range;
@@ -162,37 +161,34 @@
       };
     });
 
-    // Fetch & process
+    // Fetch loop
     async function fetchCount(){
       try {
-        const res = await fetch(
-          "https://corsproxy.io/?https://api-sea.swordofjustice.com/api/yuyue/total"
-        );
+        const res  = await fetch("https://corsproxy.io/?https://api-sea.swordofjustice.com/api/yuyue/total");
         const json = await res.json();
         if(json.code!==0) return;
-        const raw=Number(json.data.total);
+        const raw = Number(json.data.total);
 
-        // first load
+        // initial
         if(initial===null){
-          initial = raw; lastTotal=raw; startTime=Date.now();
-          countEl.textContent=raw.toLocaleString();
+          initial = raw;
+          lastTotal = raw;
+          countEl.textContent = raw.toLocaleString();
         }
         // on change
-        if(raw!==lastTotal){
+        if(raw !== lastTotal){
           countEl.classList.add('bump');
           setTimeout(()=>countEl.classList.remove('bump'),200);
-          countEl.textContent=raw.toLocaleString();
-
+          countEl.textContent = raw.toLocaleString();
           if(!hitMilestone && raw>=1e6){
-            hitMilestone=true;
-            mileEl.textContent=`🎉 Hit 1 000 000 at ${new Date().toLocaleString()}`;
+            hitMilestone = true;
+            mileEl.textContent = `🎉 Hit 1 000 000 at ${new Date().toLocaleString()}`;
           }
         }
-        lastTotal=raw;
-        // record every fetch
+        lastTotal = raw;
+        // record
         history.push({t:new Date(),v:raw});
-        // keep max 7 days & persist
-        history = history.filter(o=>Date.now()-o.t<=7*864e5);
+        history = history.filter(o=> Date.now()-o.t <= 7*864e5);
         persist();
         updateChart();
       } catch(e){
@@ -200,7 +196,7 @@
       }
     }
 
-    // kick off
+    // run immediately + every 10s
     fetchCount();
     setInterval(fetchCount,10000);
   </script>

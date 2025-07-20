@@ -3,123 +3,172 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sword of Justice Pre-Registrations</title>
+  <title>Sword of Justice Pre‑Registrations</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    :root {
+      --bg: #111;
+      --fg: #eee;
+      --accent: #00cc99;
+      --panel: #1f1f1f;
+      --text-muted: #666;
+    }
+    [data-theme="light"] {
+      --bg: #f4f4f4;
+      --fg: #111;
+      --accent: #2563eb;
+      --panel: #ffffff;
+      --text-muted: #888;
     }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background-color: #f9fafb;
-      color: #111827;
       font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      padding: 2rem;
+      padding: 1rem;
+      transition: background .3s, color .3s;
     }
-
     .container {
-      text-align: center;
-      background: #ffffff;
-      padding: 2rem 2.5rem;
+      background: var(--panel);
+      padding: 2rem;
       border-radius: 1rem;
-      box-shadow: 0 20px 30px rgba(0, 0, 0, 0.05);
-      max-width: 480px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.2);
+      max-width: 400px;
       width: 100%;
-      animation: fadeIn 0.6s ease-out;
+      text-align: center;
+      position: relative;
     }
-
     h1 {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 600;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }
-
     #count {
       font-size: 3rem;
       font-weight: 600;
-      color: #2563eb;
-      margin-bottom: 1rem;
+      color: var(--accent);
+      margin-bottom: .5rem;
+      transition: transform .2s;
     }
-
-    #milestone {
-      font-size: 1rem;
-      color: #16a34a;
-      font-weight: 500;
+    #count.bump { transform: scale(1.1); }
+    #date { font-size: .9rem; color: var(--text-muted); }
+    .stats {
+      margin-top: 1.5rem;
+      text-align: left;
+      font-size: .95rem;
+      color: var(--fg);
+    }
+    .stats div { margin: .5rem 0; }
+    .milestone {
       margin-top: 1rem;
+      font-size: .95rem;
+      color: var(--accent);
+      font-weight: 500;
     }
-
-    #date {
-      font-size: 0.95rem;
-      color: #6b7280;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 480px) {
-      #count { font-size: 2.5rem; }
+    .toggle {
+      position: absolute;
+      top: .5rem; right: .5rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.2rem;
     }
   </style>
 </head>
-<body>
+<body data-theme="dark">
   <div class="container">
-    <h1>Sword of Justice Pre-Registrations</h1>
-    <div id="count">Loading...</div>
-    <div id="date"></div>
-    <div id="milestone"></div>
+    <button class="toggle" aria-label="Toggle theme">🌙</button>
+    <h1>Sword of Justice Pre‑Registrations</h1>
+    <div id="count">–</div>
+    <div id="date">Loading time…</div>
+
+    <div class="stats">
+      <div>Since page open: <span id="since">–</span></div>
+      <div>Rate: <span id="rate">–</span>/min</div>
+    </div>
+
+    <div class="milestone" id="milestone"></div>
   </div>
 
   <script>
-    const countEl     = document.getElementById('count');
-    const dateEl      = document.getElementById('date');
-    const milestoneEl = document.getElementById('milestone');
+    // Elements
+    const countEl    = document.getElementById('count');
+    const dateEl     = document.getElementById('date');
+    const sinceEl    = document.getElementById('since');
+    const rateEl     = document.getElementById('rate');
+    const mileEl     = document.getElementById('milestone');
+    const toggleBtn  = document.querySelector('.toggle');
+    // State
+    let lastTotal   = 0;
+    let initial     = null;
+    let startTime   = Date.now();
+    let hitMillion  = false;
 
-    let lastTotal  = 0;
-    let hitMillion = false;
+    // Theme toggle
+    toggleBtn.addEventListener('click', ()=> {
+      const isDark = document.body.getAttribute('data-theme') === 'dark';
+      document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      toggleBtn.textContent = isDark ? '☀️' : '🌙';
+    });
 
+    // Update clock every second
     function updateTime() {
-      const now = new Date();
-      dateEl.textContent = "Current time: " + now.toLocaleString();
+      dateEl.textContent = new Date().toLocaleString();
     }
+    setInterval(updateTime, 1000);
 
+    // Fetch count every 10s
     async function fetchCount() {
       try {
-        const res = await fetch("https://corsproxy.io/?https://api-sea.swordofjustice.com/api/yuyue/total"); // trying with proxy
-
+        const res  = await fetch("https://corsproxy.io/?https://api-sea.swordofjustice.com/api/yuyue/total");
         const json = await res.json();
-
         if (json.code === 0) {
           const raw = Number(json.data.total);
+          // Initialize
+          if (initial === null) {
+            initial   = raw;
+            lastTotal = raw;
+            startTime = Date.now();
+          }
+          // Only update on change
           if (raw !== lastTotal) {
-            countEl.textContent = raw.toLocaleString("en-US");
+            // bump animation
+            countEl.classList.add('bump');
+            setTimeout(()=> countEl.classList.remove('bump'), 200);
+
+            countEl.textContent = raw.toLocaleString('en-US');
             lastTotal = raw;
 
-            if (!hitMillion && raw >= 1_000_000) { // if we hit 1 million den we be cool and WOO
+            // milestone
+            if (!hitMillion && raw >= 1_000_000) {
               hitMillion = true;
-              milestoneEl.textContent = `🎉 HIT 1 MILLION at ${new Date().toLocaleString()}`;
+              mileEl.textContent = `🎉 Hit 1 000 000 at ${new Date().toLocaleString()}`;
             }
+
+            // stats
+            const delta = raw - initial;
+            sinceEl.textContent = delta.toLocaleString();
+            const mins = (Date.now() - startTime) / 60000;
+            rateEl.textContent  = (delta / (mins||1)).toFixed(1);
           }
+        } else {
+          console.warn('API error:', json.message);
         }
-      } catch {
-        countEl.textContent = "Error loading count";
+      } catch (e) {
+        console.error('Fetch error', e);
       }
     }
 
+    // Kick it off
     updateTime();
     fetchCount();
-    setInterval(() => {
-      updateTime();
-      fetchCount();
-    }, 1000); // updating every 1 second
+    setInterval(fetchCount, 10000);
   </script>
 </body>
 </html>
